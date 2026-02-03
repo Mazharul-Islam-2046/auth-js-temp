@@ -26,5 +26,10 @@ export const signUpSchema = object({
   password: string({
     message: "Password is required",
   })
-    .min(1, "Password is required") 
+    .min(8, "Password must be at least 8 characters long"),
+  confirmPassword: string({
+    message: "Password is required",
   })
+    .min(8, "Password must be at least 8 characters long"),
+  })
+  

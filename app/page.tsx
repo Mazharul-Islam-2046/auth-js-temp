@@ -1,23 +1,15 @@
-import { auth, signOut } from "@/auth"
+import Link from "next/dist/client/link";
+
+
 
 
 export default async function Home() {
 
-  const session = await auth()
-  
-
-  const handleSignOut = async () => {
-    await signOut()
-  }
-  
-
-  
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black flex-col gap-4">
-      {session?.user && <h1>Welcome {session.user.name}</h1>}
-      {!session?.user && <h1>Please Sign In</h1>}
-      
-      <button onClick={handleSignOut} className="cursor-pointer">Sign Out</button>
+      <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100">Welcome to the Auth.js</h1>
+      <Link href="/signin" className="text-blue-500 hover:underline">Go to Sign In</Link>
+      <Link href="/register" className="text-blue-500 hover:underline">Go to Register</Link>
     </div>
     
   );
