@@ -1,63 +1,105 @@
-"use server"
+"use server";
 
-
-import { signUpSchema } from "@/lib/zod";
+import { signInSchema, signUpSchema } from "@/lib/zod";
 import z from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-
-
+import { signIn } from "@/auth";
+import { AuthError } from "next-auth";
 
 export const registerUser = async (data: z.infer<typeof signUpSchema>) => {
   try {
-   const validatedData = signUpSchema.parse(data);
+    const validatedData = signUpSchema.parse(data);
 
-   if (!validatedData  || !validatedData.password) {
-    console.log("Invalid input data")
-     return {error: "Invalid input data"};
-   }
+    if (!validatedData) {
+      console.log("Invalid input data");
+      return { error: "Invalid input data" };
+    }
 
-   const { name, email, password, confirmPassword } = validatedData;
+    const { name, email, password, confirmPassword } = validatedData;
 
-   if (password !== confirmPassword) {
-        console.log("Password do not match")
-        return {error: "Passwords do not match"};
-   }
+    if (password !== confirmPassword) {
+      console.log("Password do not match");
+      return { error: "Passwords do not match" };
+    }
 
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-   const hashedPassword = await bcrypt.hash(password, 10);
+    const userExists = await prisma.user.findUnique({
+      where: { email },
+    });
 
+    if (userExists) {
+      console.log("User already exists");
+      return { error: "User already exists" };
+    }
 
-   const userExists = await prisma.user.findUnique({
-     where: { email },
-   });
+    const lowerCasedEmail = email.toLowerCase();
 
-   if (userExists) {
-    console.log("User already exists")
-     return {error: "User already exists"};
-   }
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email: lowerCasedEmail,
+        hashedPassword,
+      },
+    });
 
-   const lowerCasedEmail = email.toLowerCase();
-
-   const user = await prisma.user.create({
-        data: {
-          name,
-          email: lowerCasedEmail,
-          hashedPassword,
-
-        },
-   })
-
-
-   if (!user) {
-     console.log("Something went wrong during registration");
-     return { error: "Something went wrong during registration" };
-   }
+    if (!user) {
+      console.log("Something went wrong during registration");
+      return { error: "Something went wrong during registration" };
+    }
 
     return { success: "User registered successfully" };
+  } catch (error) {
+    console.log(error);
+    return { error: "Internal server error" };
+  }
+};
 
+// Sign In Action
+export const signInUser = async (data: z.infer<typeof signInSchema>) => {
+  try {
+    const validatedData = signInSchema.parse(data);
+    if (!validatedData) {
+      console.log("Invalid input data");
+      return { error: "Invalid input data" };
+    }
 
+    const { email, password } = validatedData;
 
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user || !user.hashedPassword) {
+      console.log("User not found");
+      return { error: "User not found" };
+    }
+
+    const isPasswordCorrect = await bcrypt.compare(
+      password,
+      user.hashedPassword,
+    );
+
+    if (!isPasswordCorrect) {
+      console.log("Incorrect password");
+      return { error: "Incorrect password" };
+    }
+
+    try {
+      await signIn("credentials", {
+        email: user.email,
+        password: password,
+        redirectTo: "/",
+      });
+    } catch (error) {
+      if (error instanceof AuthError) {
+        console.log("Sign in error:", error.message);
+        return { error: "Sign in failed: " + error.message };
+      }
+    }
+
+    return { success: "User signed in successfully" };
   } catch (error) {
     console.log(error);
     return { error: "Internal server error" };
