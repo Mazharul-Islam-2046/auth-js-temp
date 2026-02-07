@@ -1,6 +1,9 @@
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import type { NextAuthConfig } from "next-auth";
+import { signInSchema } from "./lib/zod";
+import { prisma } from "./lib/prisma";
+import bcrypt from "bcryptjs";
 
 
 
@@ -11,11 +14,23 @@ export default {
             clientSecret: process.env.AUTH_GOOGLE_SECRET!
         }),
         Credentials({
-            credentials: {
-                email: { label: "Email", type: "text" },
-                password: { label: "Password", type: "password" }
-            },
-            
+            async authorize(credentials) {
+                const validatedData = signInSchema.safeParse(credentials);
+                if (!validatedData.success) return null;
+
+                const { email, password } = validatedData.data;
+
+                const user = await prisma.user.findUnique({
+                    where: { email }
+                });
+
+                if (!user || !user.hashedPassword) return null;
+
+                const isPasswordValid = await bcrypt.compare(password, user.hashedPassword);
+                if (!isPasswordValid) return null;
+
+                return user;
+            }
         })
     ]
 } satisfies NextAuthConfig;

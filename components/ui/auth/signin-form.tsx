@@ -94,7 +94,7 @@ export function SignInForm() {
           <FormSuccess message={success} />
           <FormError message={error} />
           
-          <Button type="submit" disabled={loading}>
+          <Button className="cursor-pointer" type="submit" disabled={loading}>
             {loading ? "Signing in..." : "Sign In"}
           </Button>
         </FieldGroup>

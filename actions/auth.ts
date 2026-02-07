@@ -4,7 +4,7 @@ import { signInSchema, signUpSchema } from "@/lib/zod";
 import z from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { signIn } from "@/auth";
+import { signIn, signOut } from "@/auth";
 import { AuthError } from "next-auth";
 
 export const registerUser = async (data: z.infer<typeof signUpSchema>) => {
@@ -76,21 +76,11 @@ export const signInUser = async (data: z.infer<typeof signInSchema>) => {
       return { error: "User not found" };
     }
 
-    const isPasswordCorrect = await bcrypt.compare(
-      password,
-      user.hashedPassword,
-    );
-
-    if (!isPasswordCorrect) {
-      console.log("Incorrect password");
-      return { error: "Incorrect password" };
-    }
-
     try {
       await signIn("credentials", {
         email: user.email,
         password: password,
-        redirectTo: "/",
+        redirectTo: "/register",
       });
     } catch (error) {
       if (error instanceof AuthError) {
@@ -100,6 +90,19 @@ export const signInUser = async (data: z.infer<typeof signInSchema>) => {
     }
 
     return { success: "User signed in successfully" };
+  } catch (error) {
+    console.log(error);
+    return { error: "Internal server error" };
+  }
+};
+
+
+
+// sign out action
+export const signOutUser = async () => {
+  try {
+    await signOut({ redirectTo: "/signin" });
+    return { success: "User signed out successfully" };
   } catch (error) {
     console.log(error);
     return { error: "Internal server error" };
