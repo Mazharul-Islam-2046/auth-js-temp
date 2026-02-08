@@ -84,8 +84,13 @@ export const signInUser = async (data: z.infer<typeof signInSchema>) => {
       });
     } catch (error) {
       if (error instanceof AuthError) {
-        console.log("Sign in error:", error.message);
-        return { error: "Sign in failed: " + error.message };
+        switch (error.type) {
+          case "CredentialsSignin":
+            return { error: "Invalid credentials" };
+          default:
+              return { error: "Please Confirm your email" };
+        }
+
       }
     }
 
