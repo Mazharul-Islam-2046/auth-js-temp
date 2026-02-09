@@ -42,12 +42,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
     async signIn({ user, account }) {
       if(account?.provider !== "credentials") return true;
-
       if (!user.id) return false;
 
-      const existingUser = await UserRepository.getUserById(user.id);
+      // const existingUser = await UserRepository.getUserById(user.id);
 
-      if(!existingUser?.emailVerified) return false;
+      // if(!existingUser?.emailVerified) return false;
 
       return true
     },
