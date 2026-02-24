@@ -55,7 +55,7 @@ export function SignInForm() {
       headerLabel="Login to your account"
       title="Sign In"
       backButtonLabel="Back to Sign Up"
-      backButtonHref="/register"
+      backButtonHref="/auth/register"
       showSocial
     >
       <form onSubmit={form.handleSubmit(handleSignin)}>

@@ -1,115 +1,78 @@
 "use server";
-
 import { signInSchema, signUpSchema } from "@/lib/zod";
 import z from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { signIn, signOut } from "@/auth";
 import { AuthError } from "next-auth";
+import { redirect } from "next/navigation";
+
+const handleAuthError = (error: unknown) => {
+  if (error instanceof AuthError) {
+    switch (error.type) {
+      case "CredentialsSignin":
+        return { error: "Invalid credentials" };
+      default:
+        return { error: "Please confirm your email" };
+    }
+  }
+  throw error; // re-throws NEXT_REDIRECT so redirect works
+};
 
 export const registerUser = async (data: z.infer<typeof signUpSchema>) => {
   try {
     const validatedData = signUpSchema.parse(data);
-
-    if (!validatedData) {
-      console.log("Invalid input data");
-      return { error: "Invalid input data" };
-    }
-
     const { name, email, password, confirmPassword } = validatedData;
 
-    if (password !== confirmPassword) {
-      console.log("Password do not match");
-      return { error: "Passwords do not match" };
-    }
+    if (password !== confirmPassword) return { error: "Passwords do not match" };
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const userExists = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (userExists) {
-      console.log("User already exists");
-      return { error: "User already exists" };
-    }
-
-    const lowerCasedEmail = email.toLowerCase();
+    const userExists = await prisma.user.findUnique({ where: { email } });
+    if (userExists) return { error: "User already exists" };
 
     const user = await prisma.user.create({
       data: {
         name,
-        email: lowerCasedEmail,
-        hashedPassword,
+        email: email.toLowerCase(),
+        hashedPassword: await bcrypt.hash(password, 10),
       },
     });
 
-    if (!user) {
-      console.log("Something went wrong during registration");
-      return { error: "Something went wrong during registration" };
-    }
+    if (!user) return { error: "Something went wrong during registration" };
 
-    return { success: "User registered successfully" };
   } catch (error) {
     console.log(error);
     return { error: "Internal server error" };
   }
+
+  // Outside try/catch — NEXT_REDIRECT escapes freely
+  redirect("/auth/signin");
 };
 
-// Sign In Action
 export const signInUser = async (data: z.infer<typeof signInSchema>) => {
+  let email: string, password: string;
+
   try {
     const validatedData = signInSchema.parse(data);
-    if (!validatedData) {
-      console.log("Invalid input data");
-      return { error: "Invalid input data" };
-    }
+    email = validatedData.email;
+    password = validatedData.password;
 
-    const { email, password } = validatedData;
-
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (!user || !user.hashedPassword) {
-      console.log("User not found");
-      return { error: "User not found" };
-    }
-
-    try {
-      await signIn("credentials", {
-        email: user.email,
-        password: password,
-        redirectTo: "/register",
-      });
-    } catch (error) {
-      if (error instanceof AuthError) {
-        switch (error.type) {
-          case "CredentialsSignin":
-            return { error: "Invalid credentials" };
-          default:
-              return { error: "Please Confirm your email" };
-        }
-
-      }
-    }
-
-    return { success: "User signed in successfully" };
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user || !user.hashedPassword) return { error: "User not found" };
   } catch (error) {
     console.log(error);
     return { error: "Internal server error" };
   }
+
+  // Outside try/catch — NEXT_REDIRECT will escape freely
+  return await signIn("credentials", {
+    email,
+    password,
+    redirectTo: "/dashboard",
+  }).catch(handleAuthError);
 };
 
-
-
-// sign out action
 export const signOutUser = async () => {
-  try {
-    await signOut({ redirectTo: "/signin" });
-    return { success: "User signed out successfully" };
-  } catch (error) {
-    console.log(error);
-    return { error: "Internal server error" };
-  }
+  await signOut({ redirectTo: "/auth/signin" }).catch((error) => {
+    throw error; // always re-throw so redirect works
+  });
 };
