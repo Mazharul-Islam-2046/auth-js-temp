@@ -4,20 +4,9 @@ import z from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { signIn, signOut } from "@/auth";
-import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
+import { handleAuthError } from "@/lib/utils";
 
-const handleAuthError = (error: unknown) => {
-  if (error instanceof AuthError) {
-    switch (error.type) {
-      case "CredentialsSignin":
-        return { error: "Invalid credentials" };
-      default:
-        return { error: "Please confirm your email" };
-    }
-  }
-  throw error; // re-throws NEXT_REDIRECT so redirect works
-};
 
 export const registerUser = async (data: z.infer<typeof signUpSchema>) => {
   try {
@@ -44,7 +33,6 @@ export const registerUser = async (data: z.infer<typeof signUpSchema>) => {
     return { error: "Internal server error" };
   }
 
-  // Outside try/catch — NEXT_REDIRECT escapes freely
   redirect("/auth/signin");
 };
 
@@ -63,7 +51,7 @@ export const signInUser = async (data: z.infer<typeof signInSchema>) => {
     return { error: "Internal server error" };
   }
 
-  // Outside try/catch — NEXT_REDIRECT will escape freely
+
   return await signIn("credentials", {
     email,
     password,
@@ -73,6 +61,6 @@ export const signInUser = async (data: z.infer<typeof signInSchema>) => {
 
 export const signOutUser = async () => {
   await signOut({ redirectTo: "/auth/signin" }).catch((error) => {
-    throw error; // always re-throw so redirect works
+    throw error;
   });
 };
