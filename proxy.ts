@@ -11,11 +11,17 @@ export default proxy(async (req) => {
   const isLoggedIn = !!req.auth;
   const { nextUrl } = req;
 
+  // 🔥 CRITICAL: Auth.js internal routes must be fully public
+  const isAuthApiRoute = nextUrl.pathname.startsWith("/api/auth");
+  if (isAuthApiRoute) {
+    return NextResponse.next(); // allow all auth API routes
+  }
+
   const isPrivateRoute = privateRoutes.includes(nextUrl.pathname);
   const isAuthRoute = nextUrl.pathname.startsWith("/auth");
   const isApiRoute = nextUrl.pathname.startsWith("/api");
 
-  // API routes — return 401 if not logged in
+  // API routes (excluding /api/auth) — require login
   if (isApiRoute) {
     if (!isLoggedIn) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     return NextResponse.next();

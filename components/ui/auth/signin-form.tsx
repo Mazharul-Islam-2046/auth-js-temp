@@ -1,44 +1,45 @@
-'use client'
+"use client";
 
-"use client"
+"use client";
 
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Button } from "@/components/ui/button"
-import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@/components/ui/button";
+import { useForm } from "react-hook-form";
 import {
   Field,
   FieldDescription,
   FieldGroup,
   FieldLabel,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import CardWrapper from "./card-wrapper"
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import CardWrapper from "./card-wrapper";
 // import { Form } from "../form"
-import { useState } from "react"
-import { FormSuccess } from "./form-success"
-import { FormError } from "./form-error"
-import z from "zod"
-import { signInUser } from "@/actions/auth"
-import { signInSchema } from "@/lib/zod"
+import { useState } from "react";
+import { FormSuccess } from "./form-success";
+import { FormError } from "./form-error";
+import z from "zod";
+import { signInUser } from "@/actions/auth";
+import { signInSchema } from "@/lib/zod";
+import GoogleLogin from "./google-login";
 
 export function SignInForm() {
   const form = useForm<z.infer<typeof signInSchema>>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
       email: "",
-      password: ""
-    }
-  })
-  
+      password: "",
+    },
+  });
+
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
   const handleSignin = (data: z.infer<typeof signInSchema>) => {
     setLoading(true);
-    setError('');
-    setSuccess('');
-    
+    setError("");
+    setSuccess("");
+
     signInUser(data).then((res) => {
       setLoading(false);
       if (res.error) {
@@ -48,7 +49,7 @@ export function SignInForm() {
         setSuccess(res.success);
       }
     });
-  }
+  };
 
   return (
     <CardWrapper
@@ -69,36 +70,41 @@ export function SignInForm() {
               {...form.register("email")}
             />
             {form.formState.errors.email && (
-              <p className="text-sm text-red-500">{form.formState.errors.email.message}</p>
+              <p className="text-sm text-red-500">
+                {form.formState.errors.email.message}
+              </p>
             )}
             <FieldDescription>
               We&apos;ll use this to contact you.
             </FieldDescription>
           </Field>
-          
+
           <Field>
             <FieldLabel htmlFor="password">Password</FieldLabel>
-            <Input 
-              id="password" 
-              type="password" 
+            <Input
+              id="password"
+              type="password"
               {...form.register("password")}
             />
             {form.formState.errors.password && (
-              <p className="text-sm text-red-500">{form.formState.errors.password.message}</p>
+              <p className="text-sm text-red-500">
+                {form.formState.errors.password.message}
+              </p>
             )}
             <FieldDescription>
               Must be at least 8 characters long.
             </FieldDescription>
           </Field>
-          
+
           <FormSuccess message={success} />
           <FormError message={error} />
-          
+
           <Button className="cursor-pointer" type="submit" disabled={loading}>
             {loading ? "Signing in..." : "Sign In"}
           </Button>
         </FieldGroup>
       </form>
+      <GoogleLogin />
     </CardWrapper>
-  )
+  );
 }
